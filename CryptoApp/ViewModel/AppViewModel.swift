@@ -7,14 +7,40 @@
 
 import SwiftUI
 
-struct AppViewModel: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+class AppViewModel: ObservableObject {
+    
+    @Published var coins: [CryptoModel]?
+    @Published var currentCoin: CryptoModel?
+    
+    init() {
+        
+        Task {
+            do {
+                try await fetchCryptoData()
+            } catch {
+                //HANDLE ERROR
+                print(error.localizedDescription)
+            }
+        }
+        
     }
-}
-
-struct AppViewModel_Previews: PreviewProvider {
-    static var previews: some View {
-        AppViewModel()
+    
+    //MARK: Fetching Crypto Data
+    func fetchCryptoData()async throws{
+        //MARK: Using latest Async/Await
+        guard let url = url else { return }
+        let session = URLSession.shared
+        
+        let response = try await session.data(from: url)
+        let jsonData = try JSONDecoder().decode([CryptoModel].self, from: response.0)
+        
+        //Alternative For DispatchQueue Main
+        await MainActor.run(body: {
+            self.coins = jsonData
+            if let firstCoin = jsonData.first {
+                self.currentCoin = firstCoin
+            }
+        })
     }
+    
 }
